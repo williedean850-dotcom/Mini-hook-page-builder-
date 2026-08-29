@@ -4,7 +4,7 @@ from datetime import datetime
 import json
 import os
 from dotenv import load_dotenv
-import openai
+import google.generativeai as genai
 import uuid
 
 load_dotenv()
@@ -12,8 +12,8 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Configure OpenAI
-openai.api_key = os.getenv('OPENAI_API_KEY')
+# Configure Google Gemini
+genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
 
 # Simple in-memory storage (replace with database later)
 pages_db = {}
@@ -29,24 +29,16 @@ def generate_hook():
         if not description:
             return jsonify({'error': 'Description required'}), 400
         
-        # Use OpenAI to generate compelling hook title
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an expert copywriter specializing in creating attention-grabbing hook titles for affiliate marketing landing pages. Generate a compelling, short headline (under 10 words) that creates curiosity and urgency."
-                },
-                {
-                    "role": "user",
-                    "content": f"Create an attention-grabbing hook title for this: {description}"
-                }
-            ],
-            temperature=0.7,
-            max_tokens=50
+        # Use Google Gemini to generate compelling hook title
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content(
+            f"""You are an expert copywriter specializing in creating attention-grabbing hook titles for affiliate marketing landing pages. 
+Generate a compelling, short headline (under 10 words) that creates curiosity and urgency for this: {description}
+
+Just provide the headline, nothing else."""
         )
         
-        hook_title = response.choices[0].message.content.strip()
+        hook_title = response.text.strip()
         return jsonify({'hook_title': hook_title}), 200
     
     except Exception as e:
